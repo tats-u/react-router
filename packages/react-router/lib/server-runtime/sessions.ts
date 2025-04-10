@@ -180,6 +180,16 @@ export interface SessionStorage<Data = SessionData, FlashData = Data> {
   ) => Promise<Session<Data, FlashData>>;
 
   /**
+   * Parses a Cookie header from a HTTP request and returns the associated
+   * Session. If there is no session associated with the cookie, this will
+   * return `null`.
+   */
+  tryGetSession: (
+    cookieHeader?: string | null,
+    options?: ParseOptions
+  ) => Promise<Session<Data, FlashData> | null>;
+
+  /**
    * Stores all data in the Session and returns the Set-Cookie header to be
    * used in the HTTP response.
    */
@@ -269,6 +279,12 @@ export function createSessionStorage<Data = SessionData, FlashData = Data>({
       let id = cookieHeader && (await cookie.parse(cookieHeader, options));
       let data = id && (await readData(id));
       return createSession(data || {}, id || "");
+    },
+    async tryGetSession(cookieHeader, options) {
+      let id = cookieHeader && (await cookie.parse(cookieHeader, options));
+      let data = id && (await readData(id));
+      if (!data) return null;
+      return createSession(data, id);
     },
     async commitSession(session, options) {
       let { id, data } = session;

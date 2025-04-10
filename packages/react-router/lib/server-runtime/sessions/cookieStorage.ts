@@ -42,6 +42,10 @@ export function createCookieSessionStorage<
         (cookieHeader && (await cookie.parse(cookieHeader, options))) || {}
       );
     },
+    async tryGetSession(cookieHeader, options) {
+      let session = await this.getSession(cookieHeader, options);
+      return session.id ? session : null;
+    },
     async commitSession(session, options) {
       let serializedCookie = await cookie.serialize(session.data, options);
       if (serializedCookie.length > 4096) {

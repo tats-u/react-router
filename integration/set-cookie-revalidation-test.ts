@@ -81,6 +81,7 @@ test.describe("set-cookie revalidation", () => {
               return (
                 <p>
                   <Link to="/protected">protected</Link>
+                  <Link to="/protected2">protected2</Link>
                 </p>
               );
             }
@@ -113,6 +114,29 @@ test.describe("set-cookie revalidation", () => {
               return <p>protected</p>;
             }
           `,
+
+        "app/routes/protected2.tsx": js`
+            import { data } from "react-router";
+
+            import { sessionStorage } from "~/session.server";
+
+            export let loader = async ({ request }) => {
+              let session = await sessionStorage.tryGetSession(request.headers.get("Cookie"));
+
+              if (!session) {
+                  return data(false, 403);
+              }
+              return data(true, {
+                headers: {
+                  "Set-Cookie": await sessionStorage.commitSession(session),
+                },
+              });
+            };
+
+            export default function Protected({loaderData: authenticated}) {
+              return <p id="status">{authenticated ? "protected" : "forbidden"}</p>;
+            }
+        `,
       },
     });
 
@@ -132,5 +156,8 @@ test.describe("set-cookie revalidation", () => {
     await app.clickLink("/protected");
     await page.waitForSelector(`#message:has-text("${BANNER_MESSAGE}")`);
     expect(await app.getHtml()).toMatch(BANNER_MESSAGE);
-  });
+
+    await app.clickLink("/protected2");
+    await page.waitForSelector("p#status");
+    expect(await app.getHtml()).toMatch("forbidden");});
 });
